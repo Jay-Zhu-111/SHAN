@@ -93,10 +93,6 @@ def eval_one_rating(model, u, L, S, j, k_list):
     L_var = torch.LongTensor(L_var)
     S_var = torch.LongTensor(S_var)
     item_var = torch.LongTensor(k_list)
-    # print(user_var.shape)
-    # print(L_var.shape)
-    # print(S_var.shape)
-    # print(item_var.shape)
     predictions = model(user_var, L_var, S_var, item_var)
     # print(predictions.shape)
     for i in range(k_list.__len__()):

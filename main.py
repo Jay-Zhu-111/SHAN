@@ -43,7 +43,6 @@ def training(model, train_loader, epoch_id, lr):
         # L_input = torch.Tensor(helper.clean_data(L_input))
         # S_input = torch.Tensor(helper.clean_data(S_input))
 
-
         # Forward
         pos_prediction = model(user_input, L_input, S_input, pos_item_input)
         neg_prediction = model(user_input, L_input, S_input, neg_item_input)
@@ -146,4 +145,5 @@ if __name__ == '__main__':
         print("\n")
 
     # helper.draw_loss()
+    torch.save(shan, 'SHAN.pkl')
     print("Done!")
