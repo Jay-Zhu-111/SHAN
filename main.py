@@ -1,14 +1,10 @@
 from get_data import Data
 from _model import SHAN
-from matplotlib.pyplot import *
 import Const
 import torch
 import torch.optim as optim
 from time import time
-import numpy as np
-import helper
 from helper import Helper
-from torch.autograd import Variable
 
 # Device configuration
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -43,6 +39,12 @@ def training(model, train_loader, epoch_id, lr):
         # L_input = torch.Tensor(helper.clean_data(L_input))
         # S_input = torch.Tensor(helper.clean_data(S_input))
 
+        # if torch.cuda.is_available():
+        #     user_input = user_input.cuda()
+        #     L_input = L_input.cuda()
+        #     S_input = S_input.cuda()
+        #     pos_item_input = pos_item_input.cuda()
+        #     neg_item_input = neg_item_input.cuda()
         # Forward
         pos_prediction = model(user_input, L_input, S_input, pos_item_input)
         neg_prediction = model(user_input, L_input, S_input, neg_item_input)
@@ -56,14 +58,10 @@ def training(model, train_loader, epoch_id, lr):
         # loss = Variable(torch.mean(torch.neg(torch.log((torch.sigmoid(FT))))),
         #                 requires_grad=True)
         LT = pos_prediction - neg_prediction
-        # print(pos_prediction, neg_prediction)
         FT = LT.float()
         # crit=torch.nn.MSELoss()
         # loss=crit(torch.sigmoid(FT),torch.tensor(1.0))
         loss = torch.mean(torch.neg(torch.log((torch.sigmoid(FT)))))
-        # print(loss.requires_grad)
-        # print("epoch_id", epoch_id)
-        # print("loss", loss)
         # helper.save_loss(loss)
         # record loss history
         losses.append(float(loss))
@@ -87,11 +85,14 @@ def evaluation(model, Helper):
     (hits, AUCs) = Helper.evaluate_model(model)
 
     # Recall
-    count = 0.0
+    count = [0.0, 0.0, 0.0, 0.0]
     for num in hits:
-        if num == 1:
-            count = count + 1
-    Recall = count / hits.__len__()
+        for i in range(count.__len__()):
+            if num[i] == 1:
+                count[i] += 1
+    Recall = []
+    for i in range(count.__len__()):
+        Recall.append(count[i] / hits.__len__())
 
     # AUC
     count = 0.0
@@ -113,7 +114,12 @@ if __name__ == '__main__':
     num_users = data.get_user_size()
     num_items = data.get_item_size()
     shan = SHAN(num_users, num_items, embedding_size, drop_ratio)
+    # shan.load_state_dict(torch.load('SHAN2_dict.pkl'))
     # print(shan)
+
+    if torch.cuda.is_available():
+        print("using cuda")
+        shan.cuda()
 
     lr_flag = True
     pre_mean_loss = 999
@@ -122,28 +128,34 @@ if __name__ == '__main__':
         shan.train()
         # 开始训练时间
         t1 = time()
-        if lr_flag:
-            lr *= 1.1
-            mean_loss = training(shan, data.get_dataloader(batch_size), i, lr)
-        else:
-            lr *= 0.5
-            mean_loss = training(shan, data.get_dataloader(batch_size), i, lr)
-        if mean_loss < pre_mean_loss:
-            lr_flag = True
-        else:
-            lr_flag = False
-        pre_mean_loss = mean_loss
+        # if lr_flag:
+        #     lr *= 1.1
+        #     mean_loss = training(shan, data.get_dataloader(batch_size), i, lr)
+        # else:
+        #     lr *= 0.5
+        #     mean_loss = training(shan, data.get_dataloader(batch_size), i, lr)
+        # if mean_loss < pre_mean_loss:
+        #     lr_flag = True
+        # else:
+        #     lr_flag = False
+        # pre_mean_loss = mean_loss
+        mean_loss = training(shan, data.get_dataloader(batch_size), i, lr)
         print("learning rate is: ", lr)
-        print("Training time is: [%.1f s]" % (time() - t1))
+        print("Training time is: [%.5f s]" % (time() - t1))
 
         # evaluating
         t2 = time()
         Recall, AUC = evaluation(shan, h)
-        print("Recall", Recall)
+        print("Recall@5", Recall[0])
+        print("Recall@10", Recall[1])
+        print("Recall@15", Recall[2])
+        print("Recall@20", Recall[3])
         print("AUC", AUC)
         print("Evalulating time is: [%.1f s]" % (time() - t2))
         print("\n")
 
+        torch.save(shan.state_dict(), 'SHAN5_dict.pkl')
+        print("______________save______________")
+
     # helper.draw_loss()
-    torch.save(shan, 'SHAN.pkl')
     print("Done!")

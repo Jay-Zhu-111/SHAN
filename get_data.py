@@ -3,30 +3,31 @@ import random
 import torch
 from torch.utils.data import TensorDataset, DataLoader
 
+dataset = Const.dataset
 timeStep = Const.time_step
 currentTime = Const.current_time
 
 
 class Data:
     def __init__(self):
-        with open('data/user_dict.txt', 'r', encoding='UTF-8') as user_dict_train_f:
+        with open('{}/user_dict.txt'.format(dataset), 'r', encoding='UTF-8') as user_dict_train_f:
             self.user_dict = eval(user_dict_train_f.read())
 
-        with open('data/item_set.txt', 'r', encoding='UTF-8') as item_set_f:
+        with open('{}/item_set.txt'.format(dataset), 'r', encoding='UTF-8') as item_set_f:
             self.item_set = eval(item_set_f.read())
 
-        with open('data/user_set.txt', 'r', encoding='UTF-8') as user_set_f:
+        with open('{}/user_set.txt'.format(dataset), 'r', encoding='UTF-8') as user_set_f:
             self.user_set = eval(user_set_f.read())
 
-        with open('data/user_input_train.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/user_input_train.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.user = eval(f.read())
-        with open('data/L_input_train.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/L_input_train.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.L = eval(f.read())
-        with open('data/S_input_train.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/S_input_train.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.S = eval(f.read())
-        with open('data/pos_item_input_train.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/pos_item_input_train.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.j = eval(f.read())
-        with open('data/neg_item_input_train.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/neg_item_input_train.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.k = eval(f.read())
         print("训练数据长度", self.user.__len__())
         print("用户数", self.get_user_size())

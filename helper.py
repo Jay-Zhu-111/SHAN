@@ -10,6 +10,7 @@ import Const
 from _model import SHAN
 from get_data import Data
 
+dataset = Const.dataset
 
 def clean_data(list_input):
     newList = []
@@ -49,15 +50,15 @@ def draw_loss():
 
 class Helper:
     def __init__(self):
-        with open('data/user_input_test.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/user_input_test.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.user_input = eval(f.read())
-        with open('data/L_input_test.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/L_input_test.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.L_input = eval(f.read())
-        with open('data/S_input_test.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/S_input_test.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.S_input = eval(f.read())
-        with open('data/pos_item_input_test.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/pos_item_input_test.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.j_input = eval(f.read())
-        with open('data/neg_item_input_test.txt', 'r', encoding='UTF-8') as f:
+        with open('{}/Input/neg_item_input_test.txt'.format(dataset), 'r', encoding='UTF-8') as f:
             self.k_input = eval(f.read())
         print("验证数据长度", self.user_input.__len__())
 
@@ -93,19 +94,31 @@ def eval_one_rating(model, u, L, S, j, k_list):
     L_var = torch.LongTensor(L_var)
     S_var = torch.LongTensor(S_var)
     item_var = torch.LongTensor(k_list)
-    predictions = model(user_var, L_var, S_var, item_var)
-    # print(predictions.shape)
+    predictions = model(user_var, L_var, S_var, item_var).cpu()
     for i in range(k_list.__len__()):
         item = k_list[i]
         map_item_score[item] = predictions.data.numpy()[i]
-    # print("map_item_score", map_item_score)
     k_list.pop()
 
     # Evaluate top rank list
-    ranklist = heapq.nlargest(Const.topK, map_item_score, key=map_item_score.get)
-    hr = getHitRatio(ranklist, j)
+    ranklist_5 = heapq.nlargest(5, map_item_score, key=map_item_score.get)
+    ranklist_10 = heapq.nlargest(10, map_item_score, key=map_item_score.get)
+    ranklist_15 = heapq.nlargest(15, map_item_score, key=map_item_score.get)
+    ranklist_20 = heapq.nlargest(20, map_item_score, key=map_item_score.get)
+    hr = []
+    hr.append(getHitRatio(ranklist_5, j))
+    hr.append(getHitRatio(ranklist_10, j))
+    hr.append(getHitRatio(ranklist_15, j))
+    hr.append(getHitRatio(ranklist_20, j))
+    # hr = getHitRatio(ranklist, j)
     AUC = getAUC(map_item_score, j, k_list)
     return hr, AUC
+
+    # # Evaluate top rank list
+    # ranklist = heapq.nlargest(Const.topK, map_item_score, key=map_item_score.get)
+    # hr = getHitRatio(ranklist, j)
+    # AUC = getAUC(map_item_score, j, k_list)
+    # return hr, AUC
 
 
 def getHitRatio(ranklist, gtItem):
@@ -117,11 +130,8 @@ def getHitRatio(ranklist, gtItem):
 
 def getAUC(map_item_score, j, k_list):
     AUC = []
-    # print(j)
     j_score = map_item_score[j]
-    # print("AUC k_list", k_list)
     for item in k_list:
-        # print(map_item_score[item])
         if map_item_score[item] < j_score:
             AUC.append(1)
         elif map_item_score[item] == j_score:

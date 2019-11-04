@@ -10,6 +10,7 @@ class SHAN(nn.Module):
         self.userembeds = UserEmbeddingLayer(num_users, embedding_dim)
         self.itemembeds = ItemEmbeddingLayer(num_items, embedding_dim)
         self.attention = AttentionLayer(2 * embedding_dim, drop_ratio)
+        self.attention2 = AttentionLayer(2 * embedding_dim, drop_ratio)
         self.embedding_dim = embedding_dim
         # self.predictlayer = PredictLayer(embedding_dim, drop_ratio)
         # initial model
@@ -25,9 +26,11 @@ class SHAN(nn.Module):
         re = torch.Tensor()
         re_user = torch.Tensor()
         re_item = torch.Tensor()
+        # print('user_inputs', user_inputs.size())
+        # print('L_inputs', L_inputs.size())
         for user, L_, S_, item in zip(user_inputs, L_inputs, S_inputs, item_inputs):
             # print("user",user)
-            # print("L",L_)
+            # print("L", L_.size())
             # print("S",S_)
             # print("item",item)
             L = []
@@ -39,30 +42,19 @@ class SHAN(nn.Module):
             for i in range(0, S_.__len__()):
                 if S_[i] != -1:
                     S.append(S_[i])
-            # if L.__len__() == 0 and S.__len__() == 0:
-            #     print(L)
-            #     print(S)
-            # print("S",S)
+
             item = [item]
-            # user = [user]
-            # item_embed = self.itemembeds(Variable(torch.LongTensor(item)))
-            # print(user__)
-            # print(user)
-            # user_embed = self.userembeds(torch.LongTensor(user))
-            # print(list(self.userembeds.parameters()))
-            # if L.__len__() == 0 or S.__len__() == 0:
-            #     print(L)
-            #     print(S)
+
             if L.__len__() != 0:
                 # 第一层注意力网络
                 # 用户嵌入 L * K
                 user_numb1 = []
                 for _ in L:
                     user_numb1.append(user)
-                user_embed1 = self.userembeds(Variable(torch.LongTensor(user_numb1)))
+                user_embed1 = self.userembeds(torch.LongTensor(user_numb1).cuda())
                 # print(user_embed1)
                 # 长期项目集嵌入 L * K
-                L_embed = self.itemembeds(Variable(torch.LongTensor(L)))
+                L_embed = self.itemembeds(torch.LongTensor(L).cuda())
                 # 连接用户和项目嵌入 L * 2K
                 user_L_embed = torch.cat((user_embed1, L_embed), dim=1)
                 # print(user_L_embed)
@@ -79,15 +71,15 @@ class SHAN(nn.Module):
                     user_numb2 = [user]
                     for _ in S:
                         user_numb2.append(user)
-                    user_embed2 = self.userembeds(Variable(torch.LongTensor(user_numb2)))
+                    user_embed2 = self.userembeds(torch.LongTensor(user_numb2).cuda())
                     # 短期项目集嵌入 S * K
-                    S_embed = self.itemembeds(Variable(torch.LongTensor(S)))
+                    S_embed = self.itemembeds(torch.LongTensor(S).cuda())
                     # 连接用户长期表示和短期项目集嵌入 (S + 1) * K
                     u_long_S_embed = torch.cat((u_long, S_embed), dim=0)
                     # 连接用户和项目嵌入 (S + 1) * 2K
                     user_u_long_S_embed = torch.cat((user_embed2, u_long_S_embed), dim=1)
                     # 权重 (S + 1) * 1
-                    at_wt2 = self.attention(user_u_long_S_embed)
+                    at_wt2 = self.attention2(user_u_long_S_embed)
                     # 用户混合表示 1 * K
                     user_hybrid = torch.matmul(at_wt2, u_long_S_embed)
                 else:
@@ -96,13 +88,13 @@ class SHAN(nn.Module):
                     user_numb2 = []
                     for _ in S:
                         user_numb2.append(user)
-                    user_embed2 = self.userembeds(Variable(torch.LongTensor(user_numb2)))
+                    user_embed2 = self.userembeds(torch.LongTensor(user_numb2).cuda())
                     # 短期项目集嵌入 S * K
-                    S_embed = self.itemembeds(Variable(torch.LongTensor(S)))
+                    S_embed = self.itemembeds(torch.LongTensor(S).cuda())
                     # 连接用户和项目嵌入 S * 2K
                     user_S_embed = torch.cat((user_embed2, S_embed), dim=1)
                     # 权重 S * 1
-                    at_wt2 = self.attention(user_S_embed)
+                    at_wt2 = self.attention2(user_S_embed)
                     # 用户混合表示 1 * K
                     user_hybrid = torch.matmul(at_wt2, S_embed)
             else:
@@ -113,7 +105,7 @@ class SHAN(nn.Module):
             else:
                 re_user = torch.cat((re_user, user_hybrid), 0)
             # 得到项目嵌入向量
-            item_embed = self.itemembeds(Variable(torch.LongTensor(item)))
+            item_embed = self.itemembeds(torch.LongTensor(item).cuda())
             item_embed = torch.reshape(item_embed, (1, 1, self.embedding_dim))
             if re_item.size(0) == 0:
                 re_item = item_embed
